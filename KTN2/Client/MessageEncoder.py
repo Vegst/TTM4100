@@ -1,8 +1,6 @@
 import json
 
 class MessageEncoder():
-    def __init__(self):
-        pass
 
     def encode_login(self, username):
         return json.dumps({'request':'login', 'content':username})

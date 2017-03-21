@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import socket
 import time
+import sys
 from enum import Enum
 from MessageReceiver import MessageReceiver
 from MessageParser import MessageParser
@@ -43,30 +44,29 @@ class Client:
             messageReceiver = MessageReceiver(self, self.connection)
             messageReceiver.start()
         except socket.error as e:
-            print("Connection to server refused.")
-            return
+            sys.exit("Connection to server refused.")
 
         while(True):
             if self.state == State.LOGIN:
                 username = input("Username: ")
-                send_payload(self.messageEncoder.encode_login(username))
+                self.send_payload(self.messageEncoder.encode_login(username))
             elif self.state == State.CHATROOM:
                 message = input("Message: ")
                 if message == 'logout':
-                    send_payload(self.messageEncoder.encode_logout())
+                    self.send_payload(self.messageEncoder.encode_logout())
                 elif message == 'names':
-                    send_payload(self.messageEncoder.encode_requestNames())
+                    self.send_payload(self.messageEncoder.encode_requestNames())
                 elif message == 'help':
-                    send_payload(self.messageEncoder.encode_requestHelp())
+                    self.send_payload(self.messageEncoder.encode_requestHelp())
                 else:
-                    send_payload(self.messageEncoder.encode_sendMessage(message))
+                    self.send_payload(self.messageEncoder.encode_sendMessage(message))
 
             time.sleep(1)
 
 
 
     def disconnect(self):
-        self.connection.close()
+        sys.exit("Disconnected from server.")
 
     def receive_payload(self, payload):
         message = self.messageParser.parse(payload)
@@ -84,7 +84,7 @@ class Client:
             self.state = State.CHATROOM
 
     def send_payload(self, payload):
-        self.connection.send(payload)
+        self.connection.send(payload.encode())
 
 
 if __name__ == '__main__':
