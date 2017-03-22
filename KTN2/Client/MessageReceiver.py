@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from threading import Thread
+import socket
 
 class MessageReceiver(Thread):
     """
@@ -22,8 +23,9 @@ class MessageReceiver(Thread):
 
     def run(self):
         while True:
-            payload = self.connection.recv(4096)
-            if payload == "":
+            msg = self.connection.recv(4096).decode()
+            if msg == "":
                 self.client.disconnect()
+                return
             else:
-                self.client.receive_payload(payload)
+                self.client.receive_payload(msg)

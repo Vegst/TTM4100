@@ -30,5 +30,5 @@ class MessageParser():
     def parse_history(self, payload):
         history = []
         for json_message in payload['content']:
-            history.append(parse_message(json_message))
+            history.append(self.parse(json_message))
         return {'timestamp': payload['timestamp'], "history": history}

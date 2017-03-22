@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
 import socketserver
+import MessageParser
+import re
+from MessageParser import MessageParser
+from MessageEncoder import MessageEncoder
 
 """
 Variables and functions that must be used by all the ClientHandler objects
 must be written here (e.g. a dictionary for connected clients)
 """
+
+connected_clients = {}
+history = []
 
 class ClientHandler(socketserver.BaseRequestHandler):
     """
@@ -22,11 +29,42 @@ class ClientHandler(socketserver.BaseRequestHandler):
         self.port = self.client_address[1]
         self.connection = self.request
 
+        # Init
+        self.messageEncoder = MessageEncoder()
+        self.messageParser = MessageParser()
+
         # Loop that listens for messages from the client
         while True:
-            received_string = self.connection.recv(4096)
+            received_string = self.connection.recv(4096).decode()
+
+            if received_string == "":
+                self.connection.close()
+                del connected_clients[self.connection]
+                break
+            else:
+                payload = self.messageParser.parse(received_string)
+                if 'login' in payload.keys():
+                    if re.match("^[A-Za-z0-9_-]*$", payload['login']):
+                        self.connection.send(self.messageEncoder.encode_history(history).encode())
+                        connected_clients[self.connection] = payload['login']
+                    else:
+                        self.connection.send(self.messageEncoder.encode_error("Invalid username").encode())
+                elif 'logout' in payload.keys():
+                    self.connection.close()
+                    del connected_clients[self.connection]
+                    return
+                elif 'message' in payload.keys():
+                    message = self.messageEncoder.encode_message(connected_clients[self.connection], payload['message'])
+                    history.append(message)
+                    for conn in connected_clients.keys():
+                        conn.send(message.encode())
+                elif 'names' in payload.keys():
+                    self.connection.send(self.messageEncoder.encode_info(', '.join(connected_clients.values())).encode())
+                elif 'help' in payload.keys():
+                    self.connection.send(self.messageEncoder.encode_info("This is the help").encode())
+                
             
-            # TODO: Add handling of received payload from client
+    
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):

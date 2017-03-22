@@ -34,6 +34,8 @@ class Client:
         self.messageEncoder = MessageEncoder()
         self.messageParser = MessageParser()
 
+        self.username = ""
+
         # Run client
         self.run()
 
@@ -46,12 +48,13 @@ class Client:
         except socket.error as e:
             sys.exit("Connection to server refused.")
 
-        while(True):
+        while (not self.connection._closed):
             if self.state == State.LOGIN:
-                username = input("Username: ")
-                self.send_payload(self.messageEncoder.encode_login(username))
+                print("Username:")
+                self.username = input()
+                self.send_payload(self.messageEncoder.encode_login(self.username))
             elif self.state == State.CHATROOM:
-                message = input("Message: ")
+                message = input()
                 if message == 'logout':
                     self.send_payload(self.messageEncoder.encode_logout())
                 elif message == 'names':
@@ -61,12 +64,14 @@ class Client:
                 else:
                     self.send_payload(self.messageEncoder.encode_sendMessage(message))
 
-            time.sleep(1)
+            time.sleep(0.1)
+
+        print("Disconnected from server")
 
 
 
     def disconnect(self):
-        sys.exit("Disconnected from server.")
+        self.connection.close()
 
     def receive_payload(self, payload):
         message = self.messageParser.parse(payload)
@@ -77,14 +82,21 @@ class Client:
             print("Info:", message['info'])
         elif 'message' in message.keys():
             if self.state == State.CHATROOM:
-                print(message['sender']+":", message['message'])
+            	if message['sender'] != self.username:
+                	print(message['sender']+":", message['message'])
         elif 'history' in message.keys():
+            print("")
+            print("Welcome", self.username, "to CHATROOM!")
             for msg in message['history']:
-                print(msg['sender']+":", msg['message'])
+            	if msg['sender'] == self.username:
+            		print(msg['message'])
+            	else:
+                	print(msg['sender']+":", msg['message'])
             self.state = State.CHATROOM
 
     def send_payload(self, payload):
-        self.connection.send(payload.encode())
+    	if not self.connection._closed:
+        	self.connection.send(payload.encode())
 
 
 if __name__ == '__main__':
