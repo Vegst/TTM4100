@@ -106,4 +106,4 @@ if __name__ == '__main__':
 
     No alterations are necessary
     """
-    client = Client('127.0.0.1', 9998)
+    client = Client('localhost', 9998)
